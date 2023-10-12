@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1999, 2012, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1999, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -353,6 +353,7 @@ INT32 MIDI_OUT_SendLongMessage(MidiDeviceHandle* handle, UBYTE* data, UINT32 siz
     MMRESULT err;
     SysExQueue* sysex;
     MIDIHDR* hdr = NULL;
+    INT32 bufferLength;
     INT32 remainingSize;
     int i;
 
@@ -409,6 +410,10 @@ INT32 MIDI_OUT_SendLongMessage(MidiDeviceHandle* handle, UBYTE* data, UINT32 siz
             hdr->lpData = malloc(size);
             hdr->dwBufferLength = size;
         }
+        // Because midiOutLongMsg ignores dwBytesRecorded, backup the actual
+        // buffer length and set dwBufferLength to the size of the data.
+        bufferLength = hdr->dwBufferLength;
+        hdr->dwBufferLength = size;
         hdr->dwBytesRecorded = size;
         memcpy(hdr->lpData, data, size);
         err = midiOutPrepareHeader((HMIDIOUT) handle->deviceHandle, hdr, sizeof(MIDIHDR));
@@ -424,6 +429,7 @@ INT32 MIDI_OUT_SendLongMessage(MidiDeviceHandle* handle, UBYTE* data, UINT32 siz
             MIDIOUT_CHECK_ERROR;
             return (INT32) err;
         }
+        hdr->dwBufferLength = bufferLength;
         remainingSize -= size;
         data += size;
     }
